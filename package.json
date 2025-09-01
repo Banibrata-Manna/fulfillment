@@ -41,6 +41,7 @@
     "vue": "3.2.26",
     "vue-barcode-reader": "^1.0.1",
     "vue-logger-plugin": "^2.2.3",
+    "vue-pdf-embed": "^1.2.1",
     "vue-router": "^4.0.12",
     "vuex": "^4.0.1",
     "vuex-persistedstate": "^4.0.0-beta.3"

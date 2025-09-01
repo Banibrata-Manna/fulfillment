@@ -175,6 +175,9 @@
       <div class="empty-state" v-else>
         <p v-html="getErrorMessage()"></p>
       </div>
+      <ion-modal :is-open="showPdf" :css-class="'pdf-modal'" @did-dismiss="closePdf()">
+        <PdfRenderer :src="pdfSource" @close="closePdf()"/>
+      </ion-modal>
     </ion-content>
 
     <ion-footer v-if="selectedCarrierPartyId">
@@ -225,6 +228,7 @@ import {
   IonThumbnail,
   IonTitle,
   IonToolbar,
+  IonModal,
   alertController,
   popoverController,
   modalController
@@ -236,7 +240,7 @@ import { useRouter } from 'vue-router';
 import { mapGetters, useStore } from 'vuex'
 import { copyToClipboard, getFeatures, hasActiveFilters, showToast } from '@/utils'
 import { hasError } from '@/adapter'
-import { getProductIdentificationValue, DxpShopifyImg, translate, useProductIdentificationStore, useUserStore } from '@hotwax/dxp-components';
+import { getProductIdentificationValue, DxpShopifyImg, translate, useProductIdentificationStore, useUserStore, useAuthStore } from '@hotwax/dxp-components';
 import emitter from '@/event-bus';
 import ViewSizeSelector from '@/components/ViewSizeSelector.vue'
 import { OrderService } from '@/services/OrderService';
@@ -249,6 +253,7 @@ import { isKit, retryShippingLabel } from '@/utils/order'
 import GiftCardActivationModal from "@/components/GiftCardActivationModal.vue";
 import { DateTime } from 'luxon';
 import HistoricalManifestModal from '@/components/HistoricalManifestModal.vue';
+import PdfRenderer from '@/components/PdfRenderer.vue';
 
 export default defineComponent({
   name: 'Completed',
@@ -282,7 +287,9 @@ export default defineComponent({
     IonThumbnail,
     IonTitle,
     IonToolbar,
-    ViewSizeSelector
+    IonModal,
+    ViewSizeSelector,
+    PdfRenderer
   },
   data() {
     return {
@@ -294,7 +301,9 @@ export default defineComponent({
       selectedCarrierPartyId: "",
       carrierConfiguration: {} as any,
       isGeneratingManifest: false,
-      selectedShipmentMethods: [] as any
+      selectedShipmentMethods: [] as any,
+      showPdf: false,
+      pdfSource: null
     }
   },
   computed: {
@@ -575,6 +584,11 @@ export default defineComponent({
       return order.statusId === 'SHIPMENT_PACKED'
     },
     async printPackingSlip(order: any) {
+      const authStore = useAuthStore();
+      if (authStore.isEmbedded) {
+        await this.printEmbeddedPackingSlip(order);
+        return;
+      }
       // if the request to print packing slip is not yet completed, then clicking multiple times on the button
       // should not do anything
       if(order.isGeneratingPackingSlip) {
@@ -585,6 +599,22 @@ export default defineComponent({
       order.isGeneratingPackingSlip = true;
       await OrderService.printPackingSlip(shipmentIds);
       order.isGeneratingPackingSlip = false;
+    },
+    async printEmbeddedPackingSlip(order: any) {
+      this.showPdf = true;
+      if(order.isGeneratingPackingSlip) {
+        return;
+      }
+
+      const shipmentIds = [order.shipmentId]
+      order.isGeneratingPackingSlip = true;
+      this.pdfSource = await OrderService.getPackingSlipUrl(shipmentIds);
+      console.log("This is PDF Url: ", this.pdfSource);
+      order.isGeneratingPackingSlip = false;
+    },
+    async closePdf() {
+      this.showPdf = false;
+      this.pdfSource = null;
     },
     async printShippingLabel(order: any) {
       const shipmentIds = [order.shipmentId]
@@ -814,8 +844,17 @@ export default defineComponent({
       router,
       store,
       timeOutline,
-      translate
+      translate,
     }
   }
 });
 </script>
+<style>
+.pdf-modal {
+  --width: 40%;
+  --height: 70%;
+  --max-width: 90%;
+  --max-height: 90%;
+  --border-radius: 10px;
+}
+</style>
