@@ -1,17 +1,18 @@
 <template>
   <ion-content class="pdf-container" >
-    <VuePdfEmbed :source="src" :css-class="'pdf-viewer'" />
+    <iframe :src="src" width="100%" height="100%"></iframe>
+    <!-- <VuePdfEmbed :source="src" :css-class="'pdf-viewer'" /> -->
   </ion-content>
 </template>
 
 <script>
 import { defineComponent } from 'vue';
-import VuePdfEmbed from 'vue-pdf-embed';
+// import VuePdfEmbed from 'vue-pdf-embed';
 import { IonContent } from '@ionic/vue';
 
 export default defineComponent({
   name: 'PdfRenderer',
-  components: { IonContent, VuePdfEmbed },
+  components: { IonContent },
   props: {
     src: { type: String, required: true }
   }

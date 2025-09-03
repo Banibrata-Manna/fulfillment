@@ -175,7 +175,7 @@
       <div class="empty-state" v-else>
         <p v-html="getErrorMessage()"></p>
       </div>
-      <ion-modal :is-open="showPdf" :css-class="'pdf-modal'" @did-dismiss="closePdf()">
+      <ion-modal :is-open="showPdf" @did-dismiss="closePdf()" class="">
         <PdfRenderer :src="pdfSource" @close="closePdf()"/>
       </ion-modal>
     </ion-content>
@@ -850,11 +850,8 @@ export default defineComponent({
 });
 </script>
 <style>
-.pdf-modal {
-  --width: 40%;
-  --height: 70%;
-  --max-width: 90%;
-  --max-height: 90%;
-  --border-radius: 10px;
+ion-modal {
+  --width: 70vw;
+  --height: 90vh;
 }
 </style>
