@@ -177,6 +177,10 @@
       </div>
     </ion-content>
 
+    <div v-if="showPdf">
+      <PdfViewer :pdfSource="pdfSource" :show="showPdf"></PdfViewer>
+    </div>
+
     <ion-footer v-if="selectedCarrierPartyId">
       <ion-toolbar>
         <ion-buttons slot="end">
@@ -236,7 +240,7 @@ import { useRouter } from 'vue-router';
 import { mapGetters, useStore } from 'vuex'
 import { copyToClipboard, getFeatures, hasActiveFilters, showToast } from '@/utils'
 import { hasError } from '@/adapter'
-import { getProductIdentificationValue, DxpShopifyImg, translate, useProductIdentificationStore, useUserStore } from '@hotwax/dxp-components';
+import { getProductIdentificationValue, DxpShopifyImg, translate, useProductIdentificationStore, useUserStore, useAuthStore } from '@hotwax/dxp-components';
 import emitter from '@/event-bus';
 import ViewSizeSelector from '@/components/ViewSizeSelector.vue'
 import { OrderService } from '@/services/OrderService';
@@ -249,6 +253,7 @@ import { isKit, retryShippingLabel } from '@/utils/order'
 import GiftCardActivationModal from "@/components/GiftCardActivationModal.vue";
 import { DateTime } from 'luxon';
 import HistoricalManifestModal from '@/components/HistoricalManifestModal.vue';
+import PdfViewer from '@/components/PdfViewer.vue';
 
 export default defineComponent({
   name: 'Completed',
@@ -282,7 +287,8 @@ export default defineComponent({
     IonThumbnail,
     IonTitle,
     IonToolbar,
-    ViewSizeSelector
+    ViewSizeSelector,
+    PdfViewer
   },
   data() {
     return {
@@ -294,7 +300,9 @@ export default defineComponent({
       selectedCarrierPartyId: "",
       carrierConfiguration: {} as any,
       isGeneratingManifest: false,
-      selectedShipmentMethods: [] as any
+      selectedShipmentMethods: [] as any,
+      showPdf: false,
+      pdfSource: null
     }
   },
   computed: {
@@ -575,6 +583,12 @@ export default defineComponent({
       return order.statusId === 'SHIPMENT_PACKED'
     },
     async printPackingSlip(order: any) {
+      const authStore = useAuthStore();
+      if (authStore.isEmbedded) {
+        await this.printEmbedPackingSlip(order);
+        console.log("This is Pdf url : ", this.pdfSource, " and. ", this.showPdf);
+        return;
+      }
       // if the request to print packing slip is not yet completed, then clicking multiple times on the button
       // should not do anything
       if(order.isGeneratingPackingSlip) {
@@ -585,6 +599,23 @@ export default defineComponent({
       order.isGeneratingPackingSlip = true;
       await OrderService.printPackingSlip(shipmentIds);
       order.isGeneratingPackingSlip = false;
+    },
+    async printEmbedPackingSlip(order: any) {
+      // if the request to print packing slip is not yet completed, then clicking multiple times on the button
+      // should not do anything
+      if(order.isGeneratingPackingSlip) {
+        return;
+      }
+
+      const shipmentIds = [order.shipmentId]
+      order.isGeneratingPackingSlip = true;
+      this.pdfSource = await OrderService.getPackingSlipUrl(shipmentIds);
+      this.showPdf = true;
+      order.isGeneratingPackingSlip = false;
+    },
+    async closeEmbeddedPdf () {
+      this.showPdf = false;
+      this.pdfSource = null;
     },
     async printShippingLabel(order: any) {
       const shipmentIds = [order.shipmentId]

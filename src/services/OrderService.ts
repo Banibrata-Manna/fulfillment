@@ -201,6 +201,40 @@ const printPackingSlip = async (shipmentIds: Array<string>): Promise<any> => {
   }
 }
 
+const getPackingSlipUrl = async (shipmentIds: Array<string>): Promise<any> => {
+  try {
+    const maargUrl = store.getters['user/getMaargUrl'];
+    const omstoken = store.getters['user/getUserToken'];
+
+    // Get packing slip from the server
+    const resp = await apiClient({
+      url: "/fop/apps/pdf/PrintPackingSlip",
+      method: "GET",
+      baseURL: maargUrl,
+      headers: {
+        "Authorization": "Bearer " + omstoken,
+        "Content-Type": "application/json"
+      },
+      params: {
+        shipmentId: shipmentIds
+      },
+      responseType: "blob"
+    });
+
+
+    if (!resp || resp.status !== 200 || hasError(resp)) {
+      throw resp.data
+    }
+
+    // Generate local file URL for the blob received
+    return window.URL.createObjectURL(resp.data);
+
+  } catch (err) {
+    showToast(translate('Failed to print packing slip'))
+    logger.error("Failed to load packing slip", err)
+  }
+}
+
 const printShippingLabel = async (shipmentIds: Array<string>, shippingLabelPdfUrls?: Array<string>, shipmentPackages?: Array<any>, imageType?: string): Promise<any> => {
   try {
     const maargUrl = store.getters['user/getMaargUrl'];
@@ -912,5 +946,6 @@ export const OrderService = {
   shipOrder,
   unpackOrder,
   updateShipmentCarrierAndMethod,
-  voidShipmentLabel
+  voidShipmentLabel,
+  getPackingSlipUrl
 }
