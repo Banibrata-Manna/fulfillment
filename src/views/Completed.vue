@@ -175,7 +175,7 @@
       <div class="empty-state" v-else>
         <p v-html="getErrorMessage()"></p>
       </div>
-      <ion-modal :is-open="showPdf" @did-dismiss="closePdf()" class="">
+      <ion-modal :is-open="showPdf" @did-dismiss="closePdf()">
         <PdfRenderer :src="pdfSource" @close="closePdf()"/>
       </ion-modal>
     </ion-content>
