@@ -285,8 +285,9 @@ const posScan = async ():Promise<any> => {
 
     scanner.subscribe(Scanner.Action.CAPTURE, 
       async function (payload) {
-        scanData = await payload?.scanData;
+        scanData = await payload?.data?.scanData;
         console.log("This is scanner Payload: ", payload);
+        console.log("This is data scan data: ", payload?.data);
         console.log("This is scanned Value: ", scanData);
         return Promise.resolve(scanData);
       }
