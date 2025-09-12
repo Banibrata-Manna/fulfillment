@@ -266,58 +266,56 @@ const getFacilityFilter = (value: any): any => {
   return facilityFilter 
 }
 
-const posScan = async ():Promise<any> => {
-  console.log("This is app's POS Scanner");
-  let scanData = undefined;
-  try {
-    const authStore = useAuthStore();
-    const app = authStore.shopifyAppBridge;
+const posScan = (): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const authStore = useAuthStore();
+      const app = authStore.shopifyAppBridge;
 
-    console.log("This is app: ", app);
+      console.log("Auth Store: ", authStore);
 
-    const scanner = Scanner.create(app);
-
-    console.log("This is Scanner: ", scanner);
-
-    const features = Features.create(app);
-
-    console.log("These are features: ", features);
-
-    scanner.subscribe(Scanner.Action.CAPTURE, 
-      async function (payload) {
-        scanData = await payload?.data?.scanData;
-        console.log("This is scanner Payload: ", payload);
-        console.log("This is data scan data: ", payload?.data);
-        console.log("This is scanned Value: ", scanData);
-        return Promise.resolve(scanData);
+      if (!app) {
+        return reject(new Error("Shopify App Bridge not initialized."));
       }
-    )
 
-    // Subscribe to the update action (triggered when the permission dialog is interacted with)
-    features.subscribe(Features.Action.REQUEST_UPDATE, function (payload) {
-    console.log("This is feature payload: ", payload)
+      const scanner = Scanner.create(app);
+      const features = Features.create(app);
 
-    if (payload.feature[Scanner.Action.OPEN_CAMERA]) {
-      const available = payload.feature[Scanner.Action.OPEN_CAMERA].Dispatch;
-      console.log("Is scanner available: ", available);
+      console.log("Scanner instance: ", scanner);
+      console.log("Features instance: ", features);
 
-      // If the Camera Scanner actions were enabled, open a Scanner
-      if (available) {
-        scanner.dispatch(Scanner.Action.OPEN_CAMERA)
-      }
+      const unsubscribeScanner = scanner.subscribe(Scanner.Action.CAPTURE, (payload) => {
+        unsubscribeScanner();
+        unsubscribeFeatures();
+        console.log("Scanner payload: ", payload);
+        resolve(payload?.data?.scanData);
+      });
+
+      const unsubscribeFeatures = features.subscribe(Features.Action.REQUEST_UPDATE, (payload) => {
+        console.log("Features payload: ", payload);
+        if (payload.feature[Scanner.Action.OPEN_CAMERA]) {
+          const available = payload.feature[Scanner.Action.OPEN_CAMERA].Dispatch;
+          console.log("Scanner feature available: ", available);
+          if (available) {
+            scanner.dispatch(Scanner.Action.OPEN_CAMERA);
+          } else {
+            console.log("Scanner feature not available.");
+            unsubscribeScanner();
+            unsubscribeFeatures();
+            reject(new Error("Scanner feature not available."));
+          }
+        }
+      });
+
+      features.dispatch(Features.Action.REQUEST, {
+        feature: Group.Scanner,
+        action: Scanner.Action.OPEN_CAMERA
+      });
+    } catch(error) {
+      reject(error);
     }
-    });
-    // Dispatch an action to request access to Scanner actions
-    features.dispatch(Features.Action.REQUEST, {
-    feature: Group.Scanner,
-    action: Scanner.Action.OPEN_CAMERA
-    });
-  } catch(error) {
-    console.log("Error: ", error);
-    return Promise.reject(error);
-  }
-  console.log("This is final scanned data(unreachable): ", scanData);
-  return Promise.resolve(scanData);
+    console.log("Exiting posScan function");
+  });
 }
 
 export { copyToClipboard, downloadCsv, formatCurrency, formatDate, formatPhoneNumber, formatUtcDate, generateInternalId, getCurrentFacilityId, getFacilityFilter, getFeatures, getProductStoreId, getColorByDesc, getDateWithOrdinalSuffix, getIdentificationId, handleDateTimeInput, hasActiveFilters, isValidDeliveryDays, isValidCarrierCode, isPdf, showToast, sortItems, hasError, jsonToCsv, hasWebcamAccess, parseCsv, posScan }
