@@ -53,6 +53,11 @@ const authGuard = async (to: any, from: any, next: any) => {
 
 const loginGuard = (to: any, from: any, next: any) => {
   const authStore = useAuthStore()
+  console.log('Login Guard', { to, from });
+  console.log('This is the auth state : ', authStore);
+  if (to.query?.embedded === '1') {
+    authStore.$reset();
+  }
   if (authStore.isAuthenticated && !to.query?.token && !to.query?.oms) {
     next('/')
   }

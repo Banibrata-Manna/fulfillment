@@ -1,4 +1,4 @@
-import { translate, useUserStore } from '@hotwax/dxp-components';
+import { translate, useAuthStore, useUserStore } from '@hotwax/dxp-components';
 import store from '@/store';
 import { JsonToCsvOption } from '@/types';
 import { Plugins } from '@capacitor/core';
@@ -7,6 +7,7 @@ import { saveAs } from 'file-saver';
 import { DateTime } from 'luxon';
 import Papa from 'papaparse';
 import Encoding from 'encoding-japanese';
+import { Features, Group, Scanner } from '@shopify/app-bridge/actions';
 
 // TODO Use separate files for specific utilities
 
@@ -265,4 +266,57 @@ const getFacilityFilter = (value: any): any => {
   return facilityFilter 
 }
 
-export { copyToClipboard, downloadCsv, formatCurrency, formatDate, formatPhoneNumber, formatUtcDate, generateInternalId, getCurrentFacilityId, getFacilityFilter, getFeatures, getProductStoreId, getColorByDesc, getDateWithOrdinalSuffix, getIdentificationId, handleDateTimeInput, hasActiveFilters, isValidDeliveryDays, isValidCarrierCode, isPdf, showToast, sortItems, hasError, jsonToCsv, hasWebcamAccess, parseCsv }
+const posScan = async ():Promise<any> => {
+  console.log("This is app's POS Scanner");
+  let scanData = undefined;
+  try {
+    const authStore = useAuthStore();
+    const app = authStore.shopifyAppBridge;
+
+    console.log("This is app: ", app);
+
+    const scanner = Scanner.create(app);
+
+    console.log("This is Scanner: ", scanner);
+
+    const features = Features.create(app);
+
+    console.log("These are features: ", features);
+
+    scanner.subscribe(Scanner.Action.CAPTURE, 
+      async function (payload) {
+        scanData = await payload?.scanData;
+        console.log("This is scanner Payload: ", payload);
+        console.log("This is scanned Value: ", scanData);
+        return Promise.resolve(scanData);
+      }
+    )
+
+    // Subscribe to the update action (triggered when the permission dialog is interacted with)
+    features.subscribe(Features.Action.REQUEST_UPDATE, function (payload) {
+    console.log("This is feature payload: ", payload)
+
+    if (payload.feature[Scanner.Action.OPEN_CAMERA]) {
+      const available = payload.feature[Scanner.Action.OPEN_CAMERA].Dispatch;
+      console.log("Is scanner available: ", available);
+
+      // If the Camera Scanner actions were enabled, open a Scanner
+      if (available) {
+        scanner.dispatch(Scanner.Action.OPEN_CAMERA)
+      }
+    }
+    });
+    // Dispatch an action to request access to Scanner actions
+    features.dispatch(Features.Action.REQUEST, {
+    feature: Group.Scanner,
+    action: Scanner.Action.OPEN_CAMERA
+    });
+  } catch(error) {
+    console.log("Error: ", error);
+    return Promise.reject(error);
+  }
+  console.log("This is final scanned data(unreachable): ", scanData);
+  return Promise.resolve(scanData);
+}
+
+export { copyToClipboard, downloadCsv, formatCurrency, formatDate, formatPhoneNumber, formatUtcDate, generateInternalId, getCurrentFacilityId, getFacilityFilter, getFeatures, getProductStoreId, getColorByDesc, getDateWithOrdinalSuffix, getIdentificationId, handleDateTimeInput, hasActiveFilters, isValidDeliveryDays, isValidCarrierCode, isPdf, showToast, sortItems, hasError, jsonToCsv, hasWebcamAccess, parseCsv, posScan }

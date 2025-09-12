@@ -171,7 +171,7 @@ import { useRouter } from 'vue-router';
 import Scanner from "@/components/Scanner.vue";
 import { Actions, hasPermission } from '@/authorization'
 import { DateTime } from 'luxon';
-import { getFeatures, showToast, hasWebcamAccess } from '@/utils';
+import { getFeatures, showToast, hasWebcamAccess, posScan } from '@/utils';
 import { TransferOrderService } from '@/services/TransferOrderService'
 import { OrderService } from '@/services/OrderService'
 import TransferOrderItem from '@/components/TransferOrderItem.vue'
@@ -318,7 +318,7 @@ export default defineComponent({
     
     async scanCode () {
       if (useAuthStore().isEmbedded) {
-        const scanData = await openPosScanner();
+        const scanData = await posScan();
         if(scanData) {
           this.updateProductCount(scanData);
         } else {
