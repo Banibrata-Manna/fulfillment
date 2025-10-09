@@ -72,6 +72,12 @@ export default defineComponent({
     async unauthorised() {
       const authStore = useAuthStore();
       const isEmbedded = authStore.isEmbedded;
+      if (authStore.isEmbedded) {
+        await this.presentLoader({message: 'Re-Authenticating', backdropDismiss: false})
+        this.router.push('/login');
+        this.dismissLoader();
+        return;
+      }
       const appLoginUrl = getAppLoginUrl();
       // Mark the user as unauthorised, this will help in not making the logout api call in actions
       this.store.dispatch("user/logout", { isUserUnauthorised: true });

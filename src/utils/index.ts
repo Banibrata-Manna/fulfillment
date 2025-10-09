@@ -1,4 +1,4 @@
-import { translate, useUserStore } from '@hotwax/dxp-components';
+import { translate, useAuthStore, useUserStore } from '@hotwax/dxp-components';
 import store from '@/store';
 import { JsonToCsvOption } from '@/types';
 import { Plugins } from '@capacitor/core';
@@ -265,4 +265,17 @@ const getFacilityFilter = (value: any): any => {
   return facilityFilter 
 }
 
-export { copyToClipboard, downloadCsv, formatCurrency, formatDate, formatPhoneNumber, formatUtcDate, generateInternalId, getCurrentFacilityId, getFacilityFilter, getFeatures, getProductStoreId, getColorByDesc, getDateWithOrdinalSuffix, getIdentificationId, handleDateTimeInput, hasActiveFilters, isValidDeliveryDays, isValidCarrierCode, isPdf, showToast, sortItems, hasError, jsonToCsv, hasWebcamAccess, parseCsv }
+const isTokenExpired = () => {
+  let isTokenExpired = false
+  const authStore = useAuthStore();
+  
+  if (authStore.token.expiration) {
+    const currTime = DateTime.now().toMillis()
+    isTokenExpired = authStore.token.expiration < currTime
+  }
+  console.log("Utils-----------", authStore.token.value, " and expiry ", isTokenExpired);
+  return authStore.token.value && isTokenExpired
+}
+
+
+export { copyToClipboard, downloadCsv, formatCurrency, formatDate, formatPhoneNumber, formatUtcDate, generateInternalId, getCurrentFacilityId, getFacilityFilter, getFeatures, getProductStoreId, getColorByDesc, getDateWithOrdinalSuffix, getIdentificationId, handleDateTimeInput, hasActiveFilters, isValidDeliveryDays, isValidCarrierCode, isPdf, showToast, sortItems, hasError, jsonToCsv, hasWebcamAccess, parseCsv, isTokenExpired }

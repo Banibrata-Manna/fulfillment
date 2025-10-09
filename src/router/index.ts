@@ -15,7 +15,7 @@ import TransferShipmentReview from "@/views/TransferShipmentReview.vue"
 import CreateCarrier from "@/views/CreateCarrier.vue"
 import CarrierShipmentMethods from "@/views/CarrierShipmentMethods.vue"
 import { hasPermission } from '@/authorization';
-import { showToast } from '@/utils'
+import { isTokenExpired, showToast } from '@/utils'
 import { translate, useUserStore } from '@hotwax/dxp-components'
 import 'vue-router'
 import Notifications from '@/views/Notifications.vue'
@@ -34,9 +34,16 @@ import OrderLookup from '@/views/OrderLookup.vue';
 import OrderLookupDetail from '@/views/OrderLookupDetail.vue';
 import Rejections from '@/views/Rejections.vue';
 import Shopify from '@/views/Shopify.vue';
+import { modalController } from '@ionic/vue';
 
 const authGuard = async (to: any, from: any, next: any) => {
   const authStore = useAuthStore()
+  if (authStore.isEmbedded && isTokenExpired()) {
+    await loader.present('Authenticating')
+    next('/login');
+    loader.dismiss();
+    return;
+  }
   if (!authStore.isAuthenticated || !store.getters['user/isAuthenticated']) {
     await loader.present('Authenticating')
     if (authStore.isEmbedded) {
@@ -59,7 +66,7 @@ const loginGuard = (to: any, from: any, next: any) => {
     authStore.$reset();
     userStore.$reset();
   }
-  if (authStore.isAuthenticated && !to.query?.token && !to.query?.oms) {
+  if (!authStore.isEmbedded && authStore.isAuthenticated && !to.query?.token && !to.query?.oms) {
     next('/')
   }
   next();
@@ -266,6 +273,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from) => {
+  // modalController.dismiss();
   if (to.meta.permissionId && !hasPermission(to.meta.permissionId)) {
     let redirectToPath = from.path;
     // If the user has navigated from Login page or if it is page load, redirect user to settings page without showing any toast
@@ -276,5 +284,9 @@ router.beforeEach((to, from) => {
     }
   }
 })
+
+// router.afterEach((to, from) => {
+//   modalController.dismiss();
+// })
 
 export default router
